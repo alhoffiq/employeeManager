@@ -23,7 +23,7 @@ function start() {
             name: "action",
             type: "list",
             message: "What would you like to do?",
-            choices: ["View employees", "View roles", "View departments", "Add employee", "Add role", "Add department", "Update employee's role"]
+            choices: ["View employees", "View roles", "View departments", "Add employee", "Add role", "Add department", "Update employee's role", "Stop"]
         },
     ]).then(answers => {
         switch (answers.action) {
@@ -38,23 +38,26 @@ function start() {
                             }
                         }
                         console.table(res);
+                        start();
                     });
-                    connection.end();
                 });
                 break;
             case "View roles": // Gets all the role data
                 connection.query('SELECT title, salary, department_name FROM role LEFT JOIN department ON role.department_id = department.id', function (err, res) {
                     if (err) throw err;
                     console.table(res);
-                    connection.end();
+                    start();
                 });
                 break;
             case "View departments": // Gets all the department data
                 connection.query('SELECT department_name FROM department', function (err, res) {
                     if (err) throw err;
                     console.table(res);
-                    connection.end();
+                    start();
                 });
+                break;
+            case "Stop":
+                connection.end();
                 break;
         }
     })

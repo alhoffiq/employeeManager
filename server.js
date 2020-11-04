@@ -1,6 +1,5 @@
 const mysql = require('mysql');
 const inquirer = require("inquirer");
-const { spawn } = require('child_process');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -25,8 +24,8 @@ function start() {
             message: "What would you like to do?",
             choices: ["View employees", "View roles", "View departments", "Add employee", "Add role", "Add department", "Update employee's role", "Stop"]
         },
-    ]).then(answers => {
-        switch (answers.action) {
+    ]).then(answers1 => {
+        switch (answers1.action) {
             case "View employees": // This mess gets all the data about each employee and adds the manager's name to their listing in an overly complicated way
                 connection.query('SELECT manager_id, employee.id, first_name, last_name, title, salary, department_name FROM employee LEFT JOIN role ON role.id = employee.role_id LEFT JOIN department ON department.id = role.department_id', function (err, res) {
                     if (err) throw err;
@@ -56,9 +55,85 @@ function start() {
                     start();
                 });
                 break;
+            case "Add employee":
+                let roles = [];
+                let employees = [];
+                connection.query("SELECT title FROM role", function (err, res) {
+                    if (err) throw err;
+                    res.forEach(role => {
+                        roles.push(role.title);
+                    });
+                    connection.query("SELECT CONCAT(first_name, ' ', last_name) AS fullName FROM employee", function (err, res) {
+                        if (err) throw err;
+                        res.forEach(employee => {
+                            employees.push(employee.fullName);
+                        });
+                        addEmployee(roles, employees);
+                    });
+                });
+
+                break;
+            case "Add role":
+
+                break;
+            case "Add department":
+
+                break;
+            case "Update employee's role":
+
+                break;
             case "Stop":
                 connection.end();
                 break;
         }
     })
+}
+
+function addEmployee(roles, employees) {
+    employees.push("None"); // Gives the "no manager" option
+    inquirer.prompt([
+        {
+            name: "firstName",
+            type: "input",
+            message: "What is the employee's first name?"
+        }, {
+            name: "lastName",
+            type: "input",
+            message: "What is the employee's last name?"
+        }, {
+            name: "role",
+            type: "list",
+            message: "What is the employee's role?",
+            choices: roles
+        }, {
+            name: "manager",
+            type: "list",
+            message: "Who is the employee's manager? (If they have one)",
+            choices: employees
+        }
+
+    ]).then(answers2 => {
+        let firstName = answers2.firstName;
+        let lastName = answers2.lastName;
+        let roleId;
+        let managerId;
+        connection.query("SELECT id FROM role WHERE title = ?", [answers2.role], function (err, res) {
+            if (err) throw err;
+            roleId = res[0].id;
+            if (answers2.manager === "None") {
+                managerId = null;
+            } else {
+                connection.query("SELECT * FROM employee WHERE CONCAT(first_name, ' ', last_name) = ?", [answers2.manager], function (err, res) {
+                    if (err) throw err;
+                    managerId = res[0].id;
+                    connection.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES(?,?,?,?)', [firstName, lastName, roleId, managerId], function (err, res) {
+                        if (err) throw err;
+                        console.log("Employee added!");
+                        start();
+                    });
+                })
+            }
+        })
+
+    });
 }

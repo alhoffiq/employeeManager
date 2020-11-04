@@ -1,6 +1,5 @@
 const mysql = require('mysql');
 const inquirer = require("inquirer");
-const { allowedNodeEnvironmentFlags } = require('process');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',

@@ -84,7 +84,7 @@ function start() {
                 });
                 break;
             case "Add department":
-
+                addDepartment();
                 break;
             case "Update employee's role":
 
@@ -176,4 +176,20 @@ function addRole(departments) {
             });
         });
     });
-}
+};
+
+function addDepartment() {
+    inquirer.prompt([
+        {
+            name: "name",
+            type: "input",
+            message: "What is the name of this department?"
+        }
+    ]).then(answers4 => {
+        connection.query('INSERT INTO department (department_name) VALUES(?)', [answers4.name], function (err, res) {
+            if (err) throw err;
+            console.log("Department added!");
+            start();
+        });
+    });
+};

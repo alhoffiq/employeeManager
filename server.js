@@ -1,5 +1,6 @@
 const mysql = require('mysql');
 const inquirer = require("inquirer");
+const { allowedNodeEnvironmentFlags } = require('process');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -71,10 +72,16 @@ function start() {
                         addEmployee(roles, employees);
                     });
                 });
-
                 break;
             case "Add role":
-
+                let departments = [];
+                connection.query("SELECT department_name FROM department", function (err, res) {
+                    if (err) throw err;
+                    res.forEach(department => {
+                        departments.push(department.department_name);
+                    });
+                    addRole(departments);
+                });
                 break;
             case "Add department":
 
@@ -117,13 +124,13 @@ function addEmployee(roles, employees) {
         let lastName = answers2.lastName;
         let roleId;
         let managerId;
-        connection.query("SELECT id FROM role WHERE title = ?", [answers2.role], function (err, res) {
+        connection.query("SELECT id FROM role WHERE title = ?", [answers2.role], function (err, res) { // Turns role name into it's ID
             if (err) throw err;
             roleId = res[0].id;
             if (answers2.manager === "None") {
                 managerId = null;
             } else {
-                connection.query("SELECT * FROM employee WHERE CONCAT(first_name, ' ', last_name) = ?", [answers2.manager], function (err, res) {
+                connection.query("SELECT * FROM employee WHERE CONCAT(first_name, ' ', last_name) = ?", [answers2.manager], function (err, res) { // Turns employee name into their ID
                     if (err) throw err;
                     managerId = res[0].id;
                     connection.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES(?,?,?,?)', [firstName, lastName, roleId, managerId], function (err, res) {
@@ -135,5 +142,38 @@ function addEmployee(roles, employees) {
             }
         })
 
+    });
+}
+
+function addRole(departments) {
+    inquirer.prompt([
+        {
+            name: "name",
+            type: "input",
+            message: "What is the name of this role?"
+        }, {
+            name: "salary",
+            type: "input",
+            message: "What is the starting salary for this role?"
+        }, {
+            name: "department",
+            type: "list",
+            message: "What department does this role work in?",
+            choices: departments
+        }
+
+    ]).then(answers3 => {
+        let name = answers3.name;
+        let salary = answers3.salary;
+        let departmentId;
+        connection.query("SELECT id FROM department WHERE department_name = ?", [answers3.department], function (err, res) { // Turns department name into it's ID
+            if (err) throw err;
+            departmentId = res[0].id;
+            connection.query('INSERT INTO role (title, salary, department_id) VALUES(?,?,?)', [name, salary, departmentId], function (err, res) {
+                if (err) throw err;
+                console.log("Role added!");
+                start();
+            });
+        });
     });
 }
